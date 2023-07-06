@@ -1,0 +1,26 @@
+#See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /src
+COPY ["Dainn.WebAPI/Dainn.WebAPI.csproj", "Dainn.WebAPI/"]
+COPY ["Dainn.Domain/Dainn.Domain.csproj", "Dainn.Domain/"]
+COPY ["Dainn.Application/Dainn.Application.csproj", "Dainn.Application/"]
+COPY ["Dainn.Identity/Dainn.Identity.csproj", "Dainn.Identity/"]
+COPY ["Dainn.Infrastucture/Dainn.Infrastucture.csproj", "Dainn.Infrastucture/"]
+RUN dotnet restore "Dainn.WebAPI/Dainn.WebAPI.csproj"
+COPY . .
+WORKDIR "/src/Dainn.WebAPI"
+RUN dotnet build "Dainn.WebAPI.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "Dainn.WebAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "Dainn.WebAPI.dll"]
